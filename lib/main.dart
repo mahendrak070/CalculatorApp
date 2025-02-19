@@ -32,12 +32,21 @@ class _CalculatorPageState extends State<CalculatorPage> {
   void _onButtonPressed(String value) {
     setState(() {
       if (value == 'C') {
-        // Clear current calculation.
+        // Clear current input.
         _display = '0';
         _operand1 = '';
         _operator = '';
+      } else if (value == '⌫') {
+        // Backspace: remove the last character.
+        if (_display == 'Error') {
+          _display = '0';
+        } else if (_display.length > 1) {
+          _display = _display.substring(0, _display.length - 1);
+        } else {
+          _display = '0';
+        }
       } else if (value == '+' || value == '-' || value == '×' || value == '÷') {
-        // If an operator is already set, perform a chained calculation.
+        // Set operator or perform chained calculation.
         if (_operator.isEmpty) {
           _operator = value;
           _operand1 = _display;
@@ -49,32 +58,30 @@ class _CalculatorPageState extends State<CalculatorPage> {
           _shouldResetDisplay = true;
         }
       } else if (value == '=') {
-        // Only calculate if a valid operator and first operand exist.
+        // Execute calculation if possible.
         if (_operator.isNotEmpty && _operand1.isNotEmpty) {
           String expression = "$_operand1 $_operator $_display";
           _calculate();
-          // Only add to history if no error occurred.
+          // Save to history if there’s no error.
           if (_display != 'Error') {
             _history.add("$expression = $_display");
           }
           _operator = '';
         }
       } else {
-        // Handling numbers and the decimal point.
+        // Handle number or decimal point.
         if (_shouldResetDisplay || _display == '0') {
           _display = '';
           _shouldResetDisplay = false;
         }
-        // Prevent multiple decimals in one number.
-        if (value == '.' && _display.contains('.')) {
-          return;
-        }
+        // Avoid multiple decimals.
+        if (value == '.' && _display.contains('.')) return;
         _display += value;
       }
     });
   }
 
-  // Performs arithmetic based on the current operands and operator.
+  // Performs arithmetic based on the stored operator.
   void _calculate() {
     double num1 = double.tryParse(_operand1) ?? 0;
     double num2 = double.tryParse(_display) ?? 0;
@@ -103,16 +110,14 @@ class _CalculatorPageState extends State<CalculatorPage> {
       default:
         return;
     }
-
-    // Remove unnecessary decimal if the result is an integer.
-    if (result % 1 == 0) {
+    // If result is an integer, show without a decimal point.
+    if (result % 1 == 0)
       _display = result.toInt().toString();
-    } else {
+    else
       _display = result.toString();
-    }
   }
 
-  // Builds a rounded button that mimics the Apple Calculator style.
+  // Helper to build a styled button.
   Widget _buildButton(String text,
       {Color textColor = Colors.white,
       Color buttonColor = const Color(0xFF333333),
@@ -148,7 +153,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Display area showing current input/result.
+            // Display for current input/result.
             Container(
               padding: EdgeInsets.all(12),
               alignment: Alignment.centerRight,
@@ -157,18 +162,27 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 style: TextStyle(fontSize: 60, color: Colors.white),
               ),
             ),
-            // History panel with a clear history button.
+            // History panel with Apple-like styling.
             Container(
+              margin: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: EdgeInsets.all(8),
               height: 120,
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey[850],
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: Column(
                 children: [
+                  // Header with "History" title and clear button.
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         "History",
-                        style: TextStyle(fontSize: 18, color: Colors.white),
+                        style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500),
                       ),
                       TextButton(
                         onPressed: () {
@@ -176,13 +190,20 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             _history.clear();
                           });
                         },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
                         child: Text(
-                          "Clear History",
-                          style: TextStyle(color: Colors.red),
+                          "Clear",
+                          style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
                   ),
+                  // Display list of history entries.
                   Expanded(
                     child: _history.isEmpty
                         ? Center(
@@ -205,26 +226,27 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 ],
               ),
             ),
-            // Calculator button grid.
+            // Calculator keypad.
             Expanded(
               child: Container(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // First row: Clear (C) and division operator.
+                    // First row: Clear (C), Backspace (⌫), placeholder, Division (÷).
                     Row(
                       children: [
                         _buildButton('C',
                             textColor: Colors.black, buttonColor: Colors.grey),
-                        // Placeholders to mimic layout.
-                        _buildButton('', buttonColor: Colors.transparent),
-                        _buildButton('', buttonColor: Colors.transparent),
+                        _buildButton('⌫',
+                            textColor: Colors.black, buttonColor: Colors.grey),
+                        _buildButton('',
+                            buttonColor: Colors.transparent), // Placeholder
                         _buildButton('÷',
                             textColor: Colors.orange,
                             buttonColor: Colors.grey[850]!),
                       ],
                     ),
-                    // Second row: 7, 8, 9, multiplication operator.
+                    // Second row: 7, 8, 9, Multiplication (×).
                     Row(
                       children: [
                         _buildButton('7'),
@@ -235,7 +257,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             buttonColor: Colors.grey[850]!),
                       ],
                     ),
-                    // Third row: 4, 5, 6, subtraction operator.
+                    // Third row: 4, 5, 6, Subtraction (-).
                     Row(
                       children: [
                         _buildButton('4'),
@@ -246,7 +268,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             buttonColor: Colors.grey[850]!),
                       ],
                     ),
-                    // Fourth row: 1, 2, 3, addition operator.
+                    // Fourth row: 1, 2, 3, Addition (+).
                     Row(
                       children: [
                         _buildButton('1'),
@@ -257,10 +279,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             buttonColor: Colors.grey[850]!),
                       ],
                     ),
-                    // Fifth row: 0, decimal point, equals.
+                    // Fifth row: 0 (double width), Decimal (.), Equals (=).
                     Row(
                       children: [
-                        // Make the 0 button wider.
                         _buildButton('0', flex: 2),
                         _buildButton('.'),
                         _buildButton('=',
